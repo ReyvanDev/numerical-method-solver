@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Numerical Method Solver</title>
+  <style>
+    :root {
+      --bg: #080b16;
+      --card: #101624;
+      --card2: #151d31;
+      --border: #273450;
+      --text: #eef2ff;
+      --muted: #aab4d0;
+      --accent: #60a5fa;
+      --accent2: #93c5fd;
+      --purple: #c084fc;
+      --green: #34d399;
+      --red: #f87171;
+      --warn: #fbbf24;
+      --shadow: rgba(0,0,0,.3);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(96,165,250,.16), transparent 33rem),
+        radial-gradient(circle at bottom right, rgba(192,132,252,.10), transparent 29rem),
+        var(--bg);
+      color: var(--text);
+    }
+    .container { width: min(1220px, calc(100% - 32px)); margin: 0 auto; padding: 30px 0 48px; }
+    .hero {
+      display: grid;
+      grid-template-columns: 1.35fr .85fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    .panel {
+      background: linear-gradient(180deg, rgba(21,29,49,.94), rgba(16,22,36,.96));
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: 0 18px 60px var(--shadow);
+    }
+    .hero-main { padding: 28px; position: relative; overflow: hidden; }
+    .hero-main::after {
+      content: "∫";
+      position: absolute;
+      right: 34px;
+      top: 22px;
+      font-size: 160px;
+      color: rgba(96,165,250,.08);
+      font-weight: 900;
+      line-height: 1;
+    }
+    .badge {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(96,165,250,.3);
+      background: rgba(96,165,250,.12);
+      color: var(--accent2);
+      font-size: 13px;
+      font-weight: 900;
+      margin-bottom: 16px;
+    }
+    h1 { margin: 0; font-size: clamp(34px, 5vw, 58px); line-height: .95; letter-spacing: -.06em; }
+    .subtitle { max-width: 720px; color: var(--muted); line-height: 1.7; margin: 18px 0 0; }
+    .summary { padding: 18px; display: grid; gap: 12px; }
+    .metric {
+      padding: 18px;
+      border-radius: 20px;
+      border: 1px solid rgba(39,52,80,.9);
+      background: rgba(8,11,22,.45);
+    }
+    .metric span { display: block; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; font-weight: 900; margin-bottom: 8px; }
+    .metric strong { display: block; font-size: 30px; letter-spacing: -.04em; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .metric small { color: var(--muted); }
+    .grid { display: grid; grid-template-columns: .95fr 1.35fr; gap: 18px; }
+    .card { padding: 20px; }
+    .card h2, .card h3 { margin: 0; letter-spacing: -.03em; }
+    .card h2 { margin-bottom: 14px; }
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .tab {
+      border: 1px solid var(--border);
+      background: rgba(8,11,22,.46);
+      color: var(--muted);
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: .16s;
+    }
+    .tab.active, .tab:hover {
+      color: var(--text);
+      border-color: rgba(96,165,250,.6);
+      background: rgba(96,165,250,.14);
+    }
+    .form { display: grid; gap: 12px; }
+    label { display: grid; gap: 6px; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; font-weight: 900; }
+    input, select {
+      width: 100%;
+      border: 1px solid rgba(39,52,80,.96);
+      background: rgba(8,11,22,.72);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 11px 12px;
+      outline: none;
+      font: inherit;
+      text-transform: none;
+      letter-spacing: 0;
+      font-weight: 650;
+    }
+    input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(96,165,250,.1); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    button {
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: var(--accent);
+      color: #07101f;
+      font-weight: 950;
+      cursor: pointer;
+      transition: transform .16s ease, background .16s ease;
+    }
+    button:hover { transform: translateY(-1px); background: var(--accent2); }
+    button.secondary { background: rgba(96,165,250,.12); color: var(--accent2); border: 1px solid rgba(96,165,250,.28); }
+    .result-box {
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: rgba(8,11,22,.45);
+      display: grid;
+      gap: 8px;
+    }
+    .result-box code { color: var(--green); font-size: 18px; font-weight: 900; }
+    .muted { color: var(--muted); line-height: 1.65; font-size: 14px; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 20px; background: rgba(8,11,22,.3); }
+    table { width: 100%; border-collapse: collapse; min-width: 780px; }
+    th, td { padding: 11px 12px; text-align: left; border-bottom: 1px solid rgba(39,52,80,.72); vertical-align: middle; }
+    th { color: var(--accent2); background: rgba(8,11,22,.34); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+    td { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .note { padding: 14px; border: 1px solid rgba(251,191,36,.28); border-radius: 16px; background: rgba(251,191,36,.1); color: #fde68a; font-size: 13px; line-height: 1.6; }
+    .footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 18px; }
+    @media (max-width: 980px) { .hero, .grid { grid-template-columns: 1fr; } }
+    @media (max-width: 640px) {
+      .container { width: min(100% - 20px, 1220px); padding-top: 16px; }
+      .hero-main, .summary, .card { padding: 16px; }
+      .tabs, .row { grid-template-columns: 1fr; }
+      .actions, button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="hero">
+      <div class="panel hero-main">
+        <div class="badge">📐 Engineering Computation Toolkit</div>
+        <h1>Numerical Method Solver</h1>
+        <p class="subtitle">
+          Solve common numerical methods with iteration tables, error tracking, and exportable results.
+          Built for engineering students who need transparent step-by-step calculations.
+        </p>
+      </div>
+
+      <div class="panel summary">
+        <div class="metric">
+          <span>Current Method</span>
+          <strong id="methodLabel">Bisection</strong>
+          <small>selected solver</small>
+        </div>
+        <div class="metric">
+          <span>Final Result</span>
+          <strong id="finalResult">-</strong>
+          <small id="finalNote">Run a calculation</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="panel card">
+        <h2>Solver Input</h2>
+
+        <div class="tabs">
+          <button class="tab active" data-method="bisection">Bisection</button>
+          <button class="tab" data-method="falsePosition">False Position</button>
+          <button class="tab" data-method="newton">Newton-Raphson</button>
+          <button class="tab" data-method="trapezoidal">Trapezoidal</button>
+          <button class="tab" data-method="euler">Euler ODE</button>
+          <button class="tab" data-method="rk4">RK4 ODE</button>
+        </div>
+
+        <div class="form" id="form"></div>
+
+        <div class="actions">
+          <button id="solveBtn">Solve</button>
+          <button class="secondary" id="exampleBtn">Load Example</button>
+          <button class="secondary" id="exportBtn">Export CSV</button>
+        </div>
+
+        <div style="height: 14px"></div>
+
+        <div class="note">
+          Use JavaScript-style math syntax. Examples: <b>x^3 - x - 2</b>, <b>sin(x)</b>, <b>exp(-x) - x</b>, or for ODE <b>x + y</b>.
+        </div>
+      </div>
+
+      <div class="panel card">
+        <h2>Step-by-Step Result</h2>
+        <div class="result-box">
+          <span class="muted">Answer</span>
+          <code id="answer">-</code>
+          <span class="muted" id="answerDetail">No calculation yet.</span>
+        </div>
+
+        <div style="height: 14px"></div>
+
+        <div class="table-wrap">
+          <table>
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <p class="footer">Built with HTML, CSS, and JavaScript. No backend. No framework.</p>
+  </main>
+
+  <script>
+    let method = "bisection";
+    let resultRows = [];
+
+    const form = document.getElementById("form");
+    const answer = document.getElementById("answer");
+    const answerDetail = document.getElementById("answerDetail");
+    const methodLabel = document.getElementById("methodLabel");
+    const finalResult = document.getElementById("finalResult");
+    const finalNote = document.getElementById("finalNote");
+    const tableHead = document.getElementById("tableHead");
+    const tableBody = document.getElementById("tableBody");
+
+    const configs = {
+      bisection: {
+        label: "Bisection",
+        fields: [
+          ["f(x)", "fx", "x^3 - x - 2"],
+          ["Lower Bound xl", "xl", "1"],
+          ["Upper Bound xu", "xu", "2"],
+          ["Tolerance", "tol", "0.0001"],
+          ["Max Iteration", "maxIter", "50"]
+        ]
+      },
+      falsePosition: {
+        label: "False Position",
+        fields: [
+          ["f(x)", "fx", "x^3 - x - 2"],
+          ["Lower Bound xl", "xl", "1"],
+          ["Upper Bound xu", "xu", "2"],
+          ["Tolerance", "tol", "0.0001"],
+          ["Max Iteration", "maxIter", "50"]
+        ]
+      },
+      newton: {
+        label: "Newton-Raphson",
+        fields: [
+          ["f(x)", "fx", "x^3 - x - 2"],
+          ["Initial Guess x0", "x0", "1.5"],
+          ["Tolerance", "tol", "0.0001"],
+          ["Max Iteration", "maxIter", "50"]
+        ]
+      },
+      trapezoidal: {
+        label: "Trapezoidal Rule",
+        fields: [
+          ["f(x)", "fx", "x^2 + 2*x + 1"],
+          ["Lower Limit a", "a", "0"],
+          ["Upper Limit b", "b", "4"],
+          ["Number of Segments n", "n", "8"]
+        ]
+      },
+      euler: {
+        label: "Euler ODE",
+        fields: [
+          ["dy/dx = f(x,y)", "fxy", "x + y"],
+          ["Initial x0", "x0", "0"],
+          ["Initial y0", "y0", "1"],
+          ["Step Size h", "h", "0.1"],
+          ["Final x", "xEnd", "1"]
+        ]
+      },
+      rk4: {
+        label: "Runge-Kutta 4th Order",
+        fields: [
+          ["dy/dx = f(x,y)", "fxy", "x + y"],
+          ["Initial x0", "x0", "0"],
+          ["Initial y0", "y0", "1"],
+          ["Step Size h", "h", "0.1"],
+          ["Final x", "xEnd", "1"]
+        ]
+      }
+    };
+
+    function normalizeExpression(expr) {
+      return expr
+        .replaceAll("^", "**")
+        .replace(/\bsin\(/g, "Math.sin(")
+        .replace(/\bcos\(/g, "Math.cos(")
+        .replace(/\btan\(/g, "Math.tan(")
+        .replace(/\bexp\(/g, "Math.exp(")
+        .replace(/\blog\(/g, "Math.log(")
+        .replace(/\bsqrt\(/g, "Math.sqrt(")
+        .replace(/\babs\(/g, "Math.abs(")
+        .replace(/\bpi\b/gi, "Math.PI")
+        .replace(/\be\b/g, "Math.E");
+    }
+
+    function makeFx(expr) {
+      const clean = normalizeExpression(expr);
+      return new Function("x", `return ${clean};`);
+    }
+
+    function makeFxy(expr) {
+      const clean = normalizeExpression(expr);
+      return new Function("x", "y", `return ${clean};`);
+    }
+
+    function num(v) {
+      return Number(v);
+    }
+
+    function fmt(value, digits = 8) {
+      if (!Number.isFinite(Number(value))) return String(value);
+      return Number(value).toPrecision(digits);
+    }
+
+    function getValues() {
+      const values = {};
+      configs[method].fields.forEach(([, key]) => {
+        values[key] = document.getElementById(key).value;
+      });
+      return values;
+    }
+
+    function renderForm() {
+      const cfg = configs[method];
+      methodLabel.textContent = cfg.label;
+
+      form.innerHTML = cfg.fields.map(([label, key, value]) => `
+        <label>${label}
+          <input id="${key}" value="${value}">
+        </label>
+      `).join("");
+    }
+
+    function renderTable(headers, rows) {
+      tableHead.innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join("")}</tr>`;
+      tableBody.innerHTML = rows.map(row => `
+        <tr>${headers.map(h => `<td>${row[h] ?? ""}</td>`).join("")}</tr>
+      `).join("");
+      resultRows = rows.map(row => headers.map(h => row[h] ?? ""));
+      resultRows.headers = headers;
+    }
+
+    function setAnswer(text, detail) {
+      answer.textContent = text;
+      answerDetail.textContent = detail;
+      finalResult.textContent = text;
+      finalNote.textContent = detail;
+    }
+
+    function solveBisection(isFalsePosition = false) {
+      const v = getValues();
+      const f = makeFx(v.fx);
+      let xl = num(v.xl), xu = num(v.xu);
+      const tol = num(v.tol), maxIter = parseInt(v.maxIter, 10);
+      let fl = f(xl), fu = f(xu);
+
+      if (fl * fu > 0) throw new Error("f(xl) and f(xu) must have opposite signs.");
+
+      const rows = [];
+      let xrOld = null, xr = null, ea = null;
+
+      for (let i = 1; i <= maxIter; i++) {
+        fl = f(xl); fu = f(xu);
+        xr = isFalsePosition
+          ? xu - fu * (xl - xu) / (fl - fu)
+          : (xl + xu) / 2;
+
+        const fr = f(xr);
+        ea = xrOld === null ? null : Math.abs((xr - xrOld) / xr) * 100;
+
+        rows.push({
+          "i": i,
+          "xl": fmt(xl),
+          "xu": fmt(xu),
+          "xr": fmt(xr),
+          "f(xl)": fmt(fl),
+          "f(xu)": fmt(fu),
+          "f(xr)": fmt(fr),
+          "ea (%)": ea === null ? "-" : fmt(ea)
+        });
+
+        if (Math.abs(fr) < tol || (ea !== null && ea < tol)) break;
+
+        if (fl * fr < 0) xu = xr;
+        else xl = xr;
+
+        xrOld = xr;
+      }
+
+      renderTable(["i", "xl", "xu", "xr", "f(xl)", "f(xu)", "f(xr)", "ea (%)"], rows);
+      setAnswer(fmt(xr, 10), `${isFalsePosition ? "False Position" : "Bisection"} completed in ${rows.length} iterations.`);
+    }
+
+    function solveNewton() {
+      const v = getValues();
+      const f = makeFx(v.fx);
+      let x = num(v.x0);
+      const tol = num(v.tol), maxIter = parseInt(v.maxIter, 10);
+      const h = 1e-6;
+      const rows = [];
+
+      for (let i = 1; i <= maxIter; i++) {
+        const fx = f(x);
+        const dfx = (f(x + h) - f(x - h)) / (2 * h);
+        if (Math.abs(dfx) < 1e-14) throw new Error("Derivative is too close to zero.");
+
+        const xNew = x - fx / dfx;
+        const ea = Math.abs((xNew - x) / xNew) * 100;
+
+        rows.push({
+          "i": i,
+          "x": fmt(x),
+          "f(x)": fmt(fx),
+          "f'(x)": fmt(dfx),
+          "x new": fmt(xNew),
+          "ea (%)": fmt(ea)
+        });
+
+        x = xNew;
+        if (Math.abs(fx) < tol || ea < tol) break;
+      }
+
+      renderTable(["i", "x", "f(x)", "f'(x)", "x new", "ea (%)"], rows);
+      setAnswer(fmt(x, 10), `Newton-Raphson completed in ${rows.length} iterations.`);
+    }
+
+    function solveTrapezoidal() {
+      const v = getValues();
+      const f = makeFx(v.fx);
+      const a = num(v.a), b = num(v.b), n = parseInt(v.n, 10);
+      if (n <= 0) throw new Error("n must be greater than 0.");
+
+      const h = (b - a) / n;
+      const rows = [];
+      let sum = 0;
+
+      for (let i = 0; i <= n; i++) {
+        const x = a + i * h;
+        const fx = f(x);
+        const coeff = (i === 0 || i === n) ? 1 : 2;
+        sum += coeff * fx;
+        rows.push({
+          "i": i,
+          "x": fmt(x),
+          "f(x)": fmt(fx),
+          "Coefficient": coeff,
+          "Coeff × f(x)": fmt(coeff * fx)
+        });
+      }
+
+      const integral = (h / 2) * sum;
+      renderTable(["i", "x", "f(x)", "Coefficient", "Coeff × f(x)"], rows);
+      setAnswer(fmt(integral, 10), `Composite trapezoidal rule with n = ${n}.`);
+    }
+
+    function solveEuler(isRK4 = false) {
+      const v = getValues();
+      const f = makeFxy(v.fxy);
+      let x = num(v.x0), y = num(v.y0);
+      const h = num(v.h), xEnd = num(v.xEnd);
+      if (h <= 0) throw new Error("Step size h must be greater than 0.");
+
+      const rows = [];
+      let i = 0;
+
+      while (x <= xEnd + 1e-12) {
+        if (isRK4) {
+          const k1 = f(x, y);
+          const k2 = f(x + h / 2, y + k1 * h / 2);
+          const k3 = f(x + h / 2, y + k2 * h / 2);
+          const k4 = f(x + h, y + k3 * h);
+          rows.push({
+            "i": i,
+            "x": fmt(x),
+            "y": fmt(y),
+            "k1": fmt(k1),
+            "k2": fmt(k2),
+            "k3": fmt(k3),
+            "k4": fmt(k4)
+          });
+          if (x + h > xEnd + 1e-12) break;
+          y = y + (h / 6) * (k1 + 2*k2 + 2*k3 + k4);
+        } else {
+          const dydx = f(x, y);
+          rows.push({
+            "i": i,
+            "x": fmt(x),
+            "y": fmt(y),
+            "f(x,y)": fmt(dydx),
+            "y next": fmt(y + h * dydx)
+          });
+          if (x + h > xEnd + 1e-12) break;
+          y = y + h * dydx;
+        }
+        x += h;
+        i += 1;
+        if (i > 10000) throw new Error("Too many steps. Increase h or reduce final x.");
+      }
+
+      if (isRK4) renderTable(["i", "x", "y", "k1", "k2", "k3", "k4"], rows);
+      else renderTable(["i", "x", "y", "f(x,y)", "y next"], rows);
+
+      setAnswer(fmt(y, 10), `${isRK4 ? "RK4" : "Euler"} result at x = ${fmt(xEnd)}.`);
+    }
+
+    function solve() {
+      try {
+        if (method === "bisection") solveBisection(false);
+        if (method === "falsePosition") solveBisection(true);
+        if (method === "newton") solveNewton();
+        if (method === "trapezoidal") solveTrapezoidal();
+        if (method === "euler") solveEuler(false);
+        if (method === "rk4") solveEuler(true);
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    function exportCSV() {
+      if (!resultRows.length) {
+        alert("Run a calculation first.");
+        return;
+      }
+
+      const csv = [resultRows.headers, ...resultRows]
+        .map(row => row.map(value => `"${String(value).replaceAll('"', '""')}"`).join(","))
+        .join("\n");
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${method}-result.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    document.querySelectorAll(".tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        method = tab.dataset.method;
+        renderForm();
+        answer.textContent = "-";
+        answerDetail.textContent = "No calculation yet.";
+        finalResult.textContent = "-";
+        finalNote.textContent = "Run a calculation";
+        tableHead.innerHTML = "";
+        tableBody.innerHTML = "";
+      });
+    });
+
+    document.getElementById("solveBtn").addEventListener("click", solve);
+    document.getElementById("exampleBtn").addEventListener("click", renderForm);
+    document.getElementById("exportBtn").addEventListener("click", exportCSV);
+
+    renderForm();
+  </script>
+</body>
+</html>
